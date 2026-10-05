@@ -77,7 +77,8 @@ EMPEZAR
 06:00
 </div>
 
-<audio id="audio" preload="auto"></audio>
+<audio id="audioCancion" preload="auto"></audio>
+<audio id="audioPitido" preload="auto"></audio>
 
 <script>
 
@@ -100,15 +101,20 @@ let seleccionadas = [];
 let actual = 0;
 let tiempoRestante = 360;
 
-let intervalo;
-let temporizadorCancion;
+let intervalo = null;
+let temporizadorCambio = null;
 
-let contextoAudio = null;
+const audioCancion = document.getElementById("audioCancion");
+const audioPitido = document.getElementById("audioPitido");
 
-const audio = document.getElementById("audio");
 const lista = document.getElementById("canciones");
 const empezar = document.getElementById("empezar");
 const tiempo = document.getElementById("tiempo");
+
+
+// CARGAR EL PITIDO
+
+audioPitido.src = "./pitido.mp3";
 
 
 // GENERAR 3 CANCIONES ALEATORIAS
@@ -137,61 +143,60 @@ document.getElementById("generar").onclick = function() {
 
 empezar.onclick = function() {
 
-    empezar.disabled = true;
+    // Limpiar cualquier entrenamiento anterior
+
+    clearInterval(intervalo);
+    clearTimeout(temporizadorCambio);
+
+    audioCancion.pause();
+    audioPitido.pause();
 
     actual = 0;
     tiempoRestante = 360;
 
     tiempo.textContent = "06:00";
 
-    // Activar el sistema de sonido
-    contextoAudio = new (
-        window.AudioContext ||
-        window.webkitAudioContext
-    )();
+    empezar.disabled = true;
 
-    contextoAudio.resume();
+    // Comenzar primera canción
 
-    reproducirCancion();
+    reproducirCancion(0);
 
-    clearInterval(intervalo);
+    // CONTADOR
 
     intervalo = setInterval(function() {
 
         tiempoRestante--;
 
-        let minutos = Math.floor(tiempoRestante / 60);
-        let segundos = tiempoRestante % 60;
-
-        tiempo.textContent =
-            String(minutos).padStart(2, "0") +
-            ":" +
-            String(segundos).padStart(2, "0");
+        actualizarTiempo();
 
 
-        // PI Y CAMBIO DE CANCION
-        // A LOS 4:00 Y A LOS 2:00
+        // A LOS 4:00
+        // PARAR → PITIDO → SIGUIENTE CANCIÓN
 
-        if (
-            tiempoRestante === 240 ||
-            tiempoRestante === 120
-        ) {
-
-            reproducirPitido();
+        if (tiempoRestante === 240) {
 
             cambiarCancion();
         }
 
 
-        // FINAL
+        // A LOS 2:00
+        // PARAR → PITIDO → SIGUIENTE CANCIÓN
+
+        if (tiempoRestante === 120) {
+
+            cambiarCancion();
+        }
+
+
+        // A LOS 0:00
 
         if (tiempoRestante <= 0) {
 
             clearInterval(intervalo);
+            clearTimeout(temporizadorCambio);
 
-            clearTimeout(temporizadorCancion);
-
-            audio.pause();
+            audioCancion.pause();
 
             tiempo.textContent = "FIN";
 
@@ -202,104 +207,86 @@ empezar.onclick = function() {
 };
 
 
-// REPRODUCIR CANCION
+// MOSTRAR TIEMPO
 
-function reproducirCancion() {
+function actualizarTiempo() {
 
-    clearTimeout(temporizadorCancion);
+    const minutos = Math.floor(tiempoRestante / 60);
+    const segundos = tiempoRestante % 60;
 
-    audio.pause();
+    tiempo.textContent =
+        String(minutos).padStart(2, "0") +
+        ":" +
+        String(segundos).padStart(2, "0");
+}
 
-    audio.src = "./" + encodeURIComponent(
-        seleccionadas[actual]
-    );
 
-    audio.load();
+// REPRODUCIR UNA CANCIÓN
 
-    audio.currentTime = 0;
+function reproducirCancion(numero) {
 
-    audio.play().catch(function(error) {
+    actual = numero;
+
+    clearTimeout(temporizadorCambio);
+
+    audioCancion.pause();
+
+    audioCancion.currentTime = 0;
+
+    audioCancion.src =
+        "./" + encodeURIComponent(seleccionadas[numero]);
+
+    audioCancion.load();
+
+    audioCancion.play().catch(function(error) {
 
         console.log(
-            "No se pudo reproducir la canción:",
-            seleccionadas[actual],
+            "Error reproduciendo:",
+            seleccionadas[numero],
+            error
+        );
+
+    });
+}
+
+
+// CAMBIAR DE CANCIÓN
+
+function cambiarCancion() {
+
+    // Parar canción actual
+
+    audioCancion.pause();
+
+    audioCancion.currentTime = 0;
+
+
+    // Sonar pitido
+
+    audioPitido.currentTime = 0;
+
+    audioPitido.play().catch(function(error) {
+
+        console.log(
+            "Error reproduciendo el pitido:",
             error
         );
 
     });
 
 
-    // 2 MINUTOS EXACTOS
+    // La siguiente canción empieza inmediatamente
+    // después del pitido
 
-    temporizadorCancion = setTimeout(function() {
+    setTimeout(function() {
 
         if (actual < 2) {
 
-            actual++;
-
-            reproducirCancion();
+            reproducirCancion(actual + 1);
 
         }
 
-    }, 120000);
-}
-
-
-// CAMBIAR DE CANCION
-
-function cambiarCancion() {
-
-    if (actual < 2) {
-
-        actual++;
-
-        reproducirCancion();
-    }
-}
-
-
-// PITIDO
-
-function reproducirPitido() {
-
-    if (!contextoAudio) return;
-
-    if (contextoAudio.state === "suspended") {
-
-        contextoAudio.resume();
-    }
-
-    const oscilador =
-        contextoAudio.createOscillator();
-
-    const ganancia =
-        contextoAudio.createGain();
-
-    oscilador.type = "sine";
-
-    oscilador.frequency.value = 1000;
-
-    ganancia.gain.setValueAtTime(
-        0.7,
-        contextoAudio.currentTime
-    );
-
-    ganancia.gain.exponentialRampToValueAtTime(
-        0.001,
-        contextoAudio.currentTime + 0.3
-    );
-
-    oscilador.connect(ganancia);
-
-    ganancia.connect(
-        contextoAudio.destination
-    );
-
-    oscilador.start();
-
-    oscilador.stop(
-        contextoAudio.currentTime + 0.3
-    );
+    }, 300);
 }
 
 </script>
