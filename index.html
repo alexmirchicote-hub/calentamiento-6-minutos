@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calentamiento 6 minutos</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 30px 15px;
+    background: #f2f2f2;
+}
+
+h1 {
+    font-size: 28px;
+}
+
+button {
+    font-size: 20px;
+    padding: 15px 25px;
+    margin: 10px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+#generar {
+    background: #333;
+    color: white;
+}
+
+#empezar {
+    background: #168f3d;
+    color: white;
+}
+
+#canciones {
+    margin: 25px auto;
+    max-width: 500px;
+    font-size: 18px;
+}
+
+#tiempo {
+    font-size: 45px;
+    font-weight: bold;
+    margin: 25px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🔥 Calentamiento — 6 minutos</h1>
+
+<button id="generar">GENERAR CALENTAMIENTO</button>
+
+<div id="canciones">
+    Pulsa «GENERAR CALENTAMIENTO»
+</div>
+
+<button id="empezar" disabled>EMPEZAR</button>
+
+<div id="tiempo">06:00</div>
+
+<audio id="audio"></audio>
+
+<script>
+
+const canciones = [
+    "A Dios le pido.mp3",
+    "Caminando por la vida.mp3",
+    "La casa por el tejado.mp3",
+    "La graciosa.mp3",
+    "Me equivoque.mp3",
+    "Morocha.mp3",
+    "Por la boca vive el pez.mp3",
+    "So payaso.mp3",
+    "Suavemente.mp3",
+    "Una cerveza.mp3",
+    "Vereda de la puerta.mp3",
+    "Zapatillas.mp3"
+];
+
+let seleccionadas = [];
+let actual = 0;
+let tiempoRestante = 360;
+let intervalo;
+
+const audio = document.getElementById("audio");
+const lista = document.getElementById("canciones");
+const empezar = document.getElementById("empezar");
+const tiempo = document.getElementById("tiempo");
+
+document.getElementById("generar").onclick = function() {
+
+    seleccionadas = [...canciones]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 3);
+
+    lista.innerHTML = `
+        <strong>Calentamiento generado:</strong><br><br>
+        1. ${seleccionadas[0]}<br>
+        2. ${seleccionadas[1]}<br>
+        3. ${seleccionadas[2]}
+    `;
+
+    empezar.disabled = false;
+};
+
+empezar.onclick = function() {
+
+    actual = 0;
+    tiempoRestante = 360;
+
+    empezar.disabled = true;
+
+    reproducirCancion();
+
+    clearInterval(intervalo);
+
+    intervalo = setInterval(function() {
+
+        tiempoRestante--;
+
+        let minutos = Math.floor(tiempoRestante / 60);
+        let segundos = tiempoRestante % 60;
+
+        tiempo.textContent =
+            String(minutos).padStart(2, "0") + ":" +
+            String(segundos).padStart(2, "0");
+
+        if (tiempoRestante === 240 || tiempoRestante === 120) {
+            reproducirPitido();
+        }
+
+        if (tiempoRestante <= 0) {
+            clearInterval(intervalo);
+            audio.pause();
+            tiempo.textContent = "FIN";
+        }
+
+    }, 1000);
+};
+
+function reproducirCancion() {
+
+    audio.src = encodeURI(seleccionadas[actual]);
+    audio.currentTime = 0;
+
+    audio.play().catch(error => {
+        console.log(error);
+    });
+}
+
+audio.onended = function() {
+
+    if (actual < 2) {
+        actual++;
+        reproducirCancion();
+    }
+};
+
+function reproducirPitido() {
+
+    const contexto = new (window.AudioContext || window.webkitAudioContext)();
+    const oscilador = contexto.createOscillator();
+    const ganancia = contexto.createGain();
+
+    oscilador.frequency.value = 1000;
+
+    oscilador.connect(ganancia);
+    ganancia.connect(contexto.destination);
+
+    oscilador.start();
+
+    ganancia.gain.setValueAtTime(0.5, contexto.currentTime);
+    ganancia.gain.exponentialRampToValueAtTime(
+        0.001,
+        contexto.currentTime + 0.2
+    );
+
+    oscilador.stop(contexto.currentTime + 0.2);
+}
+
+</script>
+
+</body>
+</html>
