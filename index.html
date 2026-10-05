@@ -112,7 +112,7 @@ const empezar = document.getElementById("empezar");
 const tiempo = document.getElementById("tiempo");
 
 
-// CARGAR EL PITIDO
+// PITIDO
 
 audioPitido.src = "./pitido.mp3";
 
@@ -143,8 +143,6 @@ document.getElementById("generar").onclick = function() {
 
 empezar.onclick = function() {
 
-    // Limpiar cualquier entrenamiento anterior
-
     clearInterval(intervalo);
     clearTimeout(temporizadorCambio);
 
@@ -158,11 +156,7 @@ empezar.onclick = function() {
 
     empezar.disabled = true;
 
-    // Comenzar primera canción
-
     reproducirCancion(0);
-
-    // CONTADOR
 
     intervalo = setInterval(function() {
 
@@ -171,25 +165,21 @@ empezar.onclick = function() {
         actualizarTiempo();
 
 
-        // A LOS 4:00
-        // PARAR → PITIDO → SIGUIENTE CANCIÓN
+        // 4:00 → PITIDO → SIGUIENTE
 
         if (tiempoRestante === 240) {
-
             cambiarCancion();
         }
 
 
-        // A LOS 2:00
-        // PARAR → PITIDO → SIGUIENTE CANCIÓN
+        // 2:00 → PITIDO → SIGUIENTE
 
         if (tiempoRestante === 120) {
-
             cambiarCancion();
         }
 
 
-        // A LOS 0:00
+        // 0:00 → FIN
 
         if (tiempoRestante <= 0) {
 
@@ -207,7 +197,7 @@ empezar.onclick = function() {
 };
 
 
-// MOSTRAR TIEMPO
+// ACTUALIZAR TIEMPO
 
 function actualizarTiempo() {
 
@@ -221,7 +211,7 @@ function actualizarTiempo() {
 }
 
 
-// REPRODUCIR UNA CANCIÓN
+// REPRODUCIR CANCIÓN
 
 function reproducirCancion(numero) {
 
@@ -257,7 +247,6 @@ function cambiarCancion() {
     // Parar canción actual
 
     audioCancion.pause();
-
     audioCancion.currentTime = 0;
 
 
@@ -275,18 +264,15 @@ function cambiarCancion() {
     });
 
 
-    // La siguiente canción empieza inmediatamente
-    // después del pitido
+    // Después de 1 segundo empieza la siguiente
 
-    setTimeout(function() {
+    temporizadorCambio = setTimeout(function() {
 
         if (actual < 2) {
-
             reproducirCancion(actual + 1);
-
         }
 
-    }, 300);
+    }, 1000);
 }
 
 </script>
