@@ -3,14 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Calentamiento 6 minutos</title>
 
 <style>
 body {
     font-family: Arial, sans-serif;
     text-align: center;
+    background: #f5f5f5;
     padding: 30px 15px;
-    background: #f2f2f2;
 }
 
 h1 {
@@ -27,25 +28,31 @@ button {
 }
 
 #generar {
-    background: #333;
+    background: #222;
     color: white;
 }
 
 #empezar {
-    background: #168f3d;
+    background: #1a8f3c;
     color: white;
 }
 
+#empezar:disabled {
+    background: #aaa;
+}
+
 #canciones {
-    margin: 25px auto;
+    background: white;
+    padding: 20px;
+    margin: 20px auto;
     max-width: 500px;
-    font-size: 18px;
+    border-radius: 12px;
 }
 
 #tiempo {
-    font-size: 45px;
+    font-size: 60px;
     font-weight: bold;
-    margin: 25px;
+    margin-top: 30px;
 }
 </style>
 </head>
@@ -54,17 +61,23 @@ button {
 
 <h1>🔥 Calentamiento — 6 minutos</h1>
 
-<button id="generar">GENERAR CALENTAMIENTO</button>
+<button id="generar">
+GENERAR CALENTAMIENTO
+</button>
 
 <div id="canciones">
-    Pulsa «GENERAR CALENTAMIENTO»
+Pulsa «GENERAR CALENTAMIENTO»
 </div>
 
-<button id="empezar" disabled>EMPEZAR</button>
+<button id="empezar" disabled>
+EMPEZAR
+</button>
 
-<div id="tiempo">06:00</div>
+<div id="tiempo">
+06:00
+</div>
 
-<audio id="audio"></audio>
+<audio id="audio" preload="auto"></audio>
 
 <script>
 
@@ -76,7 +89,7 @@ const canciones = [
     "Me equivoque.mp3",
     "Morocha.mp3",
     "Por la boca vive el pez.mp3",
-    "So payaso.mp3",
+    "Sopayaso.mp3",
     "Suavemente.mp3",
     "Una cerveza.mp3",
     "Vereda de la puerta.mp3",
@@ -86,13 +99,19 @@ const canciones = [
 let seleccionadas = [];
 let actual = 0;
 let tiempoRestante = 360;
+
 let intervalo;
+let temporizadorCancion;
+
+let contextoAudio = null;
 
 const audio = document.getElementById("audio");
-    let contextoAudio = null;
 const lista = document.getElementById("canciones");
 const empezar = document.getElementById("empezar");
 const tiempo = document.getElementById("tiempo");
+
+
+// GENERAR 3 CANCIONES ALEATORIAS
 
 document.getElementById("generar").onclick = function() {
 
@@ -101,22 +120,37 @@ document.getElementById("generar").onclick = function() {
         .slice(0, 3);
 
     lista.innerHTML = `
-        <strong>Calentamiento generado:</strong><br><br>
-        1. ${seleccionadas[0]}<br>
-        2. ${seleccionadas[1]}<br>
+        <strong>Calentamiento generado:</strong>
+        <br><br>
+        1. ${seleccionadas[0]}
+        <br>
+        2. ${seleccionadas[1]}
+        <br>
         3. ${seleccionadas[2]}
     `;
 
     empezar.disabled = false;
 };
 
-empezar.onclick = function() {contextoAudio = new (window.AudioContext || window.webkitAudioContext)();
-contextoAudio.resume();
+
+// EMPEZAR
+
+empezar.onclick = function() {
+
+    empezar.disabled = true;
 
     actual = 0;
     tiempoRestante = 360;
 
-    empezar.disabled = true;
+    tiempo.textContent = "06:00";
+
+    // Activar el sistema de sonido
+    contextoAudio = new (
+        window.AudioContext ||
+        window.webkitAudioContext
+    )();
+
+    contextoAudio.resume();
 
     reproducirCancion();
 
@@ -130,63 +164,142 @@ contextoAudio.resume();
         let segundos = tiempoRestante % 60;
 
         tiempo.textContent =
-            String(minutos).padStart(2, "0") + ":" +
+            String(minutos).padStart(2, "0") +
+            ":" +
             String(segundos).padStart(2, "0");
 
-        if (tiempoRestante === 240 || tiempoRestante === 120) {
+
+        // PI Y CAMBIO DE CANCION
+        // A LOS 4:00 Y A LOS 2:00
+
+        if (
+            tiempoRestante === 240 ||
+            tiempoRestante === 120
+        ) {
+
             reproducirPitido();
+
+            cambiarCancion();
         }
 
+
+        // FINAL
+
         if (tiempoRestante <= 0) {
+
             clearInterval(intervalo);
+
+            clearTimeout(temporizadorCancion);
+
             audio.pause();
+
             tiempo.textContent = "FIN";
+
+            empezar.disabled = false;
         }
 
     }, 1000);
 };
 
+
+// REPRODUCIR CANCION
+
 function reproducirCancion() {
 
-    audio.src = encodeURI(seleccionadas[actual]);
+    clearTimeout(temporizadorCancion);
+
+    audio.pause();
+
+    audio.src = "./" + encodeURIComponent(
+        seleccionadas[actual]
+    );
+
+    audio.load();
+
     audio.currentTime = 0;
 
-    audio.play().catch(error => {
-        console.log(error);
+    audio.play().catch(function(error) {
+
+        console.log(
+            "No se pudo reproducir la canción:",
+            seleccionadas[actual],
+            error
+        );
+
     });
+
+
+    // 2 MINUTOS EXACTOS
+
+    temporizadorCancion = setTimeout(function() {
+
+        if (actual < 2) {
+
+            actual++;
+
+            reproducirCancion();
+
+        }
+
+    }, 120000);
 }
 
-audio.onended = function() {
+
+// CAMBIAR DE CANCION
+
+function cambiarCancion() {
 
     if (actual < 2) {
+
         actual++;
+
         reproducirCancion();
     }
-};
+}
+
+
+// PITIDO
 
 function reproducirPitido() {
+
     if (!contextoAudio) return;
 
     if (contextoAudio.state === "suspended") {
+
         contextoAudio.resume();
     }
 
-    const oscilador = contextoAudio.createOscillator();
-    const ganancia = contextoAudio.createGain();
+    const oscilador =
+        contextoAudio.createOscillator();
+
+    const ganancia =
+        contextoAudio.createGain();
+
+    oscilador.type = "sine";
 
     oscilador.frequency.value = 1000;
 
-    ganancia.gain.setValueAtTime(0.5, contextoAudio.currentTime);
+    ganancia.gain.setValueAtTime(
+        0.7,
+        contextoAudio.currentTime
+    );
+
     ganancia.gain.exponentialRampToValueAtTime(
         0.001,
-        contextoAudio.currentTime + 0.2
+        contextoAudio.currentTime + 0.3
     );
 
     oscilador.connect(ganancia);
-    ganancia.connect(contextoAudio.destination);
+
+    ganancia.connect(
+        contextoAudio.destination
+    );
 
     oscilador.start();
-    oscilador.stop(contextoAudio.currentTime + 0.2);
+
+    oscilador.stop(
+        contextoAudio.currentTime + 0.3
+    );
 }
 
 </script>
