@@ -89,6 +89,7 @@ let tiempoRestante = 360;
 let intervalo;
 
 const audio = document.getElementById("audio");
+    let contextoAudio = null;
 const lista = document.getElementById("canciones");
 const empezar = document.getElementById("empezar");
 const tiempo = document.getElementById("tiempo");
@@ -109,7 +110,8 @@ document.getElementById("generar").onclick = function() {
     empezar.disabled = false;
 };
 
-empezar.onclick = function() {
+empezar.onclick = function() {contextoAudio = new (window.AudioContext || window.webkitAudioContext)();
+contextoAudio.resume();
 
     actual = 0;
     tiempoRestante = 360;
@@ -163,25 +165,28 @@ audio.onended = function() {
 };
 
 function reproducirPitido() {
+    if (!contextoAudio) return;
 
-    const contexto = new (window.AudioContext || window.webkitAudioContext)();
-    const oscilador = contexto.createOscillator();
-    const ganancia = contexto.createGain();
+    if (contextoAudio.state === "suspended") {
+        contextoAudio.resume();
+    }
+
+    const oscilador = contextoAudio.createOscillator();
+    const ganancia = contextoAudio.createGain();
 
     oscilador.frequency.value = 1000;
 
-    oscilador.connect(ganancia);
-    ganancia.connect(contexto.destination);
-
-    oscilador.start();
-
-    ganancia.gain.setValueAtTime(0.5, contexto.currentTime);
+    ganancia.gain.setValueAtTime(0.5, contextoAudio.currentTime);
     ganancia.gain.exponentialRampToValueAtTime(
         0.001,
-        contexto.currentTime + 0.2
+        contextoAudio.currentTime + 0.2
     );
 
-    oscilador.stop(contexto.currentTime + 0.2);
+    oscilador.connect(ganancia);
+    ganancia.connect(contextoAudio.destination);
+
+    oscilador.start();
+    oscilador.stop(contextoAudio.currentTime + 0.2);
 }
 
 </script>
